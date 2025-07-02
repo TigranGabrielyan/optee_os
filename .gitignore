@@ -13,3 +13,8 @@
 !.gitignore
 !.github
 !.devcontainer
+.cproject
+cscope.*
+.project
+*.swp
+.vscode
