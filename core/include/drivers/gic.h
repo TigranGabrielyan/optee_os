@@ -68,6 +68,10 @@
 /* Default IRQ priority for SPIs in Non-Sec EL1 */
 #define GIC_SPI_PRI_NS_EL1	0x50
 
+/* Accessors to access ITARGETSRn */
+#define ITARGETSR_FIELD_BITS    8
+#define ITARGETSR_FIELD_MASK    0xff
+
 /*
  * The two gic_init() and gic_init_v3() functions initializes the struct
  * gic_data which is then used by the other functions. These two functions
