@@ -45,6 +45,7 @@
 #include <util.h>
 
 #include <platform_config.h>
+#include <rcar_version.h>
 
 #if !defined(CFG_WITH_ARM_TRUSTED_FW)
 #include <sm/sm.h>
@@ -1044,6 +1045,7 @@ void __weak boot_init_primary_runtime(void)
 {
 	thread_init_primary();
 	IMSG("OP-TEE version: %s", core_v_str);
+	IMSG("OPTEE_OS RCar BSP Revision: %s", VERSION_OF_RENESAS);
 	if (IS_ENABLED(CFG_INSECURE)) {
 		IMSG("WARNING: This OP-TEE configuration might be insecure!");
 		IMSG("WARNING: Please check https://optee.readthedocs.io/en/latest/architecture/porting_guidelines.html");
