@@ -11,6 +11,8 @@
 #include <kernel/thread.h>
 #include <kernel/virtualization.h>
 #include <mm/core_mmu.h>
+#include <drivers/mfis.h>
+#include <drivers/mfis_register.h>
 
 const char __weak trace_ext_prefix[] = "TC";
 int __weak trace_level __nex_data = TRACE_LEVEL;
@@ -88,6 +90,8 @@ void trace_ext_puts(const char *str)
 
 #ifndef CFG_SCIF
 	release_trace_contention(itr_status);
+#else
+	rcar_mfis_lock(MFIS_TARGET_HSCIF);
 #endif
 
 	plat_trace_ext_puts(str);
@@ -105,6 +109,10 @@ void trace_ext_puts(const char *str)
 		console_putc(*p);
 
 	console_flush();
+
+#ifdef CFG_SCIF
+	rcar_mfis_unlock(MFIS_TARGET_HSCIF);
+#endif
 
 	release_trace_contention(itr_status);
 }
