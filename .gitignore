@@ -13,3 +13,5 @@
 !.gitignore
 !.github
 !.devcontainer
+cscope.*
+*.swp
