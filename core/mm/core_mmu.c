@@ -3,6 +3,7 @@
  * Copyright (c) 2016-2025 Linaro Limited
  * Copyright (c) 2014, STMicroelectronics International N.V.
  * Copyright (c) 2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2025, Renesas Electronics Corporation
  */
 
 #include <assert.h>
@@ -21,6 +22,7 @@
 #include <memtag.h>
 #include <mm/core_memprot.h>
 #include <mm/core_mmu.h>
+#include <mm/tee_mmu_types.h>
 #include <mm/mobj.h>
 #include <mm/pgt_cache.h>
 #include <mm/phys_mem.h>
@@ -950,6 +952,7 @@ static bool __maybe_unused map_is_pgdir(const struct tee_mmap_region *mm)
 	return mm->region_size == CORE_MMU_PGDIR_SIZE;
 }
 
+#ifndef RCAR_MMU_DIRECT_MAPPING
 static int cmp_mmap_by_lower_va(const void *a, const void *b)
 {
 	const struct tee_mmap_region *mm_a = a;
@@ -957,6 +960,7 @@ static int cmp_mmap_by_lower_va(const void *a, const void *b)
 
 	return CMP_TRILEAN(mm_a->va, mm_b->va);
 }
+#endif
 
 static void dump_mmap_table(struct memory_map *mem_map)
 {
@@ -1289,6 +1293,18 @@ static bool assign_mem_va_dir(vaddr_t tee_ram_va, struct memory_map *mem_map,
 	vaddr_t va = 0;
 	size_t n = 0;
 
+#ifdef RCAR_MMU_DIRECT_MAPPING
+	const paddr_t direct_map_area[][2] = {
+		{ MEMORY4_BASE, MEMORY4_SIZE }, /* TA area for verification */
+		{ MEMORY7_BASE, MEMORY7_SIZE } /* RSIP-M FW Share Memory */
+	};
+	const size_t dmnum = sizeof(direct_map_area) / sizeof(paddr_t) / 2;
+	size_t last;
+	paddr_t dmaddr;
+	paddr_t dmsize;
+	paddr_t rd;
+	bool va_is_direct = false;
+#endif
 	/*
 	 * tee_ram_va might equals 0 when CFG_CORE_ASLR=y.
 	 * 0 is by design an invalid va, so return false directly.
@@ -1323,6 +1339,9 @@ static bool assign_mem_va_dir(vaddr_t tee_ram_va, struct memory_map *mem_map,
 	}
 
 	if (tee_ram_at_top) {
+#ifdef RCAR_MMU_DIRECT_MAPPING
+		panic();	/*Direct mapping is not supported*/
+#endif
 		/*
 		 * Map non-tee ram regions at addresses lower than the tee
 		 * ram region.
@@ -1386,6 +1405,21 @@ static bool assign_mem_va_dir(vaddr_t tee_ram_va, struct memory_map *mem_map,
 
 			if (ROUNDUP2_OVERFLOW(va, map->region_size, &va))
 				return false;
+#ifdef RCAR_MMU_DIRECT_MAPPING
+			for (n = 0; n < dmnum; n++) {
+				dmaddr = direct_map_area[n][0];
+				dmsize = direct_map_area[n][1];
+				rd = ROUNDDOWN((dmaddr), CORE_MMU_PGDIR_SIZE);
+				if (map->pa == rd) {
+					va_is_direct = true;
+				} else if ((va <= rd) &&
+				  ((va + map->size) >= (rd + dmsize))) {
+					va = rd + dmsize;
+				} else {
+					/* no operation */
+				}
+			}
+#endif
 			/*
 			 * Make sure that va is aligned with pa for
 			 * efficient pgdir mapping. Basically pa &
@@ -1398,13 +1432,50 @@ static bool assign_mem_va_dir(vaddr_t tee_ram_va, struct memory_map *mem_map,
 				if (ADD_OVERFLOW(va, offs, &va))
 					return false;
 			}
-
+#ifdef RCAR_MMU_DIRECT_MAPPING
+				if (!va_is_direct) {
+					map->va = va;
+					if (ADD_OVERFLOW(va, map->size, &va))
+						return false;
+				} else {
+					map->va = map->pa; /* pa = va mapping */
+					va_is_direct = false;
+				}
+#else
 			map->va = va;
 			if (ADD_OVERFLOW(va, map->size, &va))
 				return false;
+#endif
 			if (!core_mmu_va_is_valid(va))
 				return false;
 		}
+#ifdef RCAR_MMU_DIRECT_MAPPING
+		last = 0;
+		for (n = 0; n < mem_map->count; n++)
+			last++;
+		/*
+		 * The memory map should be sorted by virtual address
+		 * when this function returns. As we're assigning va in
+		 * the oposite direction we need to reverse the list.
+		 */
+		for (n = 0; n < last; n++) {
+			size_t o;
+			size_t min;
+
+			min = n;
+			for (o = n + 1U; o < last; o++) {
+				if (mem_map->map[min].va > mem_map->map[o].va)
+					min = o;
+			}
+			if (n != min) {
+				struct tee_mmap_region r;
+
+				r = mem_map->map[n];
+				mem_map->map[n] = mem_map->map[min];
+				mem_map->map[min] = r;
+			}
+		}
+#endif
 	}
 
 	return true;
@@ -1557,9 +1628,10 @@ static struct memory_map *init_mem_map(struct memory_map *mem_map,
 		panic();
 
 out:
+#ifndef RCAR_MMU_DIRECT_MAPPING
 	qsort(mem_map->map, mem_map->count, sizeof(struct tee_mmap_region),
 	      cmp_mmap_by_lower_va);
-
+#endif
 	dump_mmap_table(mem_map);
 
 	*ret_offs = offs;
