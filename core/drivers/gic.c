@@ -952,7 +952,11 @@ static void __maybe_unused gic_native_itr_handler(void)
 	uint32_t id = 0;
 
 	iar = gic_read_iar(gd);
-	id = iar & GICC_IAR_IT_ID_MASK;
+
+	if (affinity_routing_is_enabled(gd))
+		id = iar;
+	else
+		id = iar & GICC_IAR_IT_ID_MASK;
 
 	if (id >= 1020 && id <= 1023) {
 		/*
