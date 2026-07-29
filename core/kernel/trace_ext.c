@@ -12,8 +12,8 @@
 #include <kernel/virtualization.h>
 #include <mm/core_mmu.h>
 
-const char trace_ext_prefix[] = "TC";
-int trace_level __nex_data = TRACE_LEVEL;
+const char __weak trace_ext_prefix[] = "TC";
+int __weak trace_level __nex_data = TRACE_LEVEL;
 static unsigned int puts_lock __nex_bss = SPINLOCK_UNLOCK;
 
 /*
@@ -86,7 +86,15 @@ void trace_ext_puts(const char *str)
 
 	was_contended = wait_if_trace_contended(&itr_status);
 
+#ifndef CFG_SCIF
+	release_trace_contention(itr_status);
+#endif
+
 	plat_trace_ext_puts(str);
+
+#ifndef CFG_SCIF
+	return;
+#endif
 
 	console_flush();
 
