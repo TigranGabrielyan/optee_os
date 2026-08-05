@@ -40,6 +40,11 @@ ifeq ($(PLATFORM_FLAVOR), X5H)
 $(call force,CFG_RCAR_GEN5, y)
 endif
 
+# After upstreaming to 4.10 crypto_rng_init() starts failing with crypto_rng_init() TEE_ERROR_OUT_OF_MEMORY erorr.
+# Temporary increase heap size to 128KB (originally 64KB) to avoid this issue.
+# This is a workaround and should be removed once the root cause is found.
+$(call force,CFG_CORE_HEAP_SIZE,131072)
+
 CFG_ARM_GICV3 ?= y
 CFG_CRYPTO_WITH_CE ?= n
 CFG_TZDRAM_START ?= 0x8C400000
