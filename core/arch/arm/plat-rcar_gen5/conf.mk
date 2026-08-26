@@ -42,7 +42,14 @@ ifeq ($(CFG_RCAR_GEN5), y)
 CFG_RCAR_UART ?= 200
 $(call force,CFG_CORE_CLUSTER_SHIFT,2) #log2(2) = 4 --> 4(cores/per cluster)
 $(call force,CFG_TEE_CORE_NB_CORE,32)
-CFG_NUM_THREADS ?= $(CFG_TEE_CORE_NB_CORE)
+
+# One OP-TEE thread per physical core makes no sense under
+# CFG_NS_VIRTUALIZATION: threads are allocated per guest by
+# virt_guest_created() -> thread_init_threads(), the callers are guest
+# vCPUs rather than physical cores, and each thread costs 1792 B of guest
+# heap, 8 KiB + a guard page of guest physical memory and two PGT cache
+# entries. Upstream default is 2.
+CFG_NUM_THREADS ?= 8
 CFG_MMAP_REGIONS ?= 21
 endif
 
