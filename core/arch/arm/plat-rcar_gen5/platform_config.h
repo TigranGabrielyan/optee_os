@@ -97,8 +97,18 @@
 #define MEMORY2_TYPE		MEM_AREA_RAM_NSEC
 
 /* HSCIF address map area */
-#define MEMORY3_BASE           ROUNDDOWN(MAP_DEVICE_REG_RCAR_BASE, \
-					MAP_DEVICE_REG_RCAR_SIZE)
+
+/*
+ * ROUNDDOWN should not be used here, since MAP_DEVICE_REG_RCAR_SIZE is not
+ * power of 2. With previous implementation of ROUNDDOWN the value of the
+ * MEMORY3_BASE was unintentionally correctly calculated due to
+ * MAP_DEVICE_REG_RCAR_BASE and MAP_DEVICE_REG_RCAR_SIZE values.
+ * However, in new implementation of ROUNDDOWN the value is calculated
+ * incorrectly (with 28MiB shift from base).
+ * Moreover all necessary alignments are performed inside
+ * register_phys_mem_pgdir().
+ */
+#define MEMORY3_BASE           MAP_DEVICE_REG_RCAR_BASE
 #define MEMORY3_SIZE           (MAP_DEVICE_REG_RCAR_SIZE)
 #define MEMORY3_TYPE           MEM_AREA_IO_SEC
 #define MEMORY3_PA_END         (MAP_DEVICE_REG_RCAR_BASE + MEMORY3_SIZE)
