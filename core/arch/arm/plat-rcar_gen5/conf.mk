@@ -73,7 +73,7 @@ core-platform-cflags += -DRCAR_MMU_DIRECT_MAPPING
 
 # For using the rsipm functions
 RCAR_TRNG_BY_RSIPM_HWENGINE ?= n
-CFG_RSIPM_FW_SERVICE ?= n
+CFG_RSIPM_FW_SERVICE ?= y
 ifeq ($(CFG_RSIPM_FW_SERVICE), y)
 RCAR_TRNG_BY_RSIPM_HWENGINE = y
 core-platform-cflags += -DRCAR_TRNG_BY_RSIPM_HWENGINE
