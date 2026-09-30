@@ -42,10 +42,10 @@ void rsipm_trng_generate(uint8_t *buf, uint32_t buf_len)
 			INTER_CORE_COMM_SHARED_MEM_ADDR);
 
 	/* Wait for Secure CPU initialization to complete */
-	/* r_comm_wait_secure_cpu_init(SECURE_CPU_INIT_DONE); */
+	 r_comm_wait_secure_cpu_init(SECURE_CPU_INIT_DONE);
 
 	/* Notify the Secure CPU that initialization is complete */
-	/* r_comm_set_status_main_to_sec(MAIN_CPU_INIT_DONE, 1); */
+	r_comm_set_status_main_to_sec(MAIN_CPU_INIT_DONE, 1);
 
 	/* Trigger communication*/
 	IMSG("START: Trigger communication with LLD\r\n");
